@@ -1,0 +1,309 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>アンケート</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1d2a3a; --sub: #5b6878; --paper: #eef1f4; --card: #ffffff;
+    --line: #d5dbe2; --accent: #1f6f78; --accent-soft: #e2f0f1;
+    --warn: #c98a12; --danger: #c43d3d;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink);
+    font-family: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", Meiryo, sans-serif;
+    font-size: 16px; line-height: 1.75; }
+  .wrap { max-width: 680px; margin: 0 auto; padding: 20px 16px 64px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 24px 22px; }
+  h1 { font-size: 1.45rem; line-height: 1.45; margin: 0 0 16px; border-left: 5px solid var(--accent); padding-left: 12px; }
+  .desc { white-space: pre-wrap; color: var(--ink); }
+  .note { background: var(--accent-soft); border-radius: 8px; padding: 10px 14px; margin-top: 18px; font-size: .92rem; }
+  .progress { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; font-size: .88rem; color: var(--sub); }
+  .progress .bar { flex: 1; height: 6px; background: var(--line); border-radius: 3px; overflow: hidden; }
+  .progress .bar i { display: block; height: 100%; background: var(--accent); }
+  .timer { position: sticky; top: 0; z-index: 5; background: var(--card); border: 1px solid var(--line);
+    border-radius: 10px; padding: 10px 14px; margin-bottom: 12px; }
+  .timer .row { display: flex; justify-content: space-between; font-size: .9rem; margin-bottom: 6px; }
+  .timer .num { font-weight: 700; font-variant-numeric: tabular-nums; font-size: 1.1rem; }
+  .timer .track { height: 10px; background: var(--line); border-radius: 5px; overflow: hidden; }
+  .timer .fill { height: 100%; width: 100%; background: var(--warn); transform-origin: left; }
+  .timer.low .fill { background: var(--danger); }
+  .timer.low .num { color: var(--danger); }
+  .timer.waiting .num { color: var(--sub); font-weight: 400; font-size: .9rem; }
+  .toast { background: #fdf3df; border: 1px solid #ecd29a; color: #7a5208; border-radius: 8px;
+    padding: 8px 14px; margin-bottom: 12px; font-size: .92rem; }
+  .qtitle { font-size: 1.12rem; font-weight: 700; margin: 0 0 8px; }
+  .req { color: var(--danger); margin-left: 4px; }
+  .qdesc { white-space: pre-wrap; background: #f6f8fa; border-radius: 8px; padding: 12px 14px; margin: 0 0 14px; }
+  .imgs { display: grid; gap: 10px; margin: 6px 0 16px; }
+  .imgs.n2, .imgs.n3 { grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .imgbox { position: relative; border-radius: 8px; overflow: hidden; background: #f2f4f6;
+    min-height: 160px; display: flex; align-items: center; justify-content: center; color: var(--sub); font-size: .9rem; }
+  .imgbox img { width: 100%; height: auto; display: block; cursor: zoom-in; }
+  .imgbox .lbl { position: absolute; left: 8px; top: 8px; background: rgba(29,42,58,.8); color: #fff;
+    font-size: .8rem; padding: 1px 8px; border-radius: 4px; }
+  .opts { display: flex; flex-direction: column; gap: 8px; }
+  .opt { display: flex; gap: 12px; align-items: flex-start; border: 1px solid var(--line); border-radius: 8px;
+    padding: 12px 14px; cursor: pointer; }
+  .opt:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+  .opt input { margin-top: 6px; width: 18px; height: 18px; accent-color: var(--accent); flex: none; }
+  .opt .other { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; flex: 1; }
+  input[type=text], textarea { font: inherit; width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
+  .other input[type=text] { flex: 1; min-width: 160px; }
+  textarea { min-height: 120px; resize: vertical; }
+  .err { color: var(--danger); font-size: .92rem; margin-top: 12px; min-height: 1.2em; }
+  .nav { display: flex; justify-content: space-between; gap: 12px; margin-top: 18px; }
+  button { font: inherit; border: 0; border-radius: 8px; padding: 12px 22px; cursor: pointer; }
+  .primary { background: var(--accent); color: #fff; font-weight: 700; margin-left: auto; }
+  .primary:disabled { opacity: .5; cursor: default; }
+  .ghost { background: transparent; color: var(--sub); border: 1px solid var(--line); }
+  button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 3px solid #8cc2c7; outline-offset: 2px; }
+  .zoom { position: fixed; inset: 0; background: rgba(10,15,20,.9); display: flex; align-items: center;
+    justify-content: center; z-index: 50; cursor: zoom-out; padding: 12px; }
+  .zoom img { max-width: 100%; max-height: 100%; }
+  .center { text-align: center; }
+  @media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"><div class="card center">読み込み中…</div></div>
+
+<script src="config.js"></script>
+<script>
+const app = document.getElementById('app');
+let S = null;               // アンケート
+let idx = -1;               // 表示中の質問
+const answers = {};         // qid -> {value, timeMs, timedOut}
+const images = {};          // 画像ID -> dataURL | 'error'
+const respondentId = 'r' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+let startedAt = null, t0 = 0, shownAt = null, timerId = null, deadline = 0, finished = false;
+let begunFor = -1, imgWait = null;
+const IMAGE_WAIT_MS = 20000; // 画像がこの時間内に表示できなければ、画像なしで時間を計り始める
+
+// Apps Script（config.js の API_URL）にデータを送受信する
+async function run(fn) {
+  const args = Array.prototype.slice.call(arguments, 1);
+  if (!window.API_URL || !/^https:\/\/script\.google\.com\/.+\/exec$/.test(API_URL)) {
+    throw new Error('config.js に Apps Script のウェブアプリURL（末尾が /exec）が設定されていません。');
+  }
+  let lastErr;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt) await new Promise(r => setTimeout(r, 800 * attempt + Math.random() * 700));
+    let j;
+    try {
+      // text/plain で送ると、Googleのログイン状態に関係なく通信できる
+      const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: fn, args: args }) });
+      j = await res.json();
+    } catch (e) {
+      lastErr = new Error('Apps Script に接続できませんでした。デプロイの「アクセスできるユーザー」が「全員」になっているか確認してください。');
+      continue; // 混雑などの一時的な失敗は自動でやり直す
+    }
+    if (!j.ok) throw new Error(j.error || 'エラーが発生しました');
+    return j.data;
+  }
+  throw lastErr;
+}
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function rich(s) { return esc(s).replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>'); }
+function isEmpty(v) { return v == null || v === '' || (Array.isArray(v) && v.length === 0); }
+
+run('getPublicSurvey').then(sv => {
+  S = sv;
+  document.title = sv.title;
+  if (!sv.accepting) {
+    app.innerHTML = `<div class="card"><h1>${esc(sv.title)}</h1><p>現在このアンケートは回答を受け付けていません。</p></div>`;
+    return;
+  }
+  renderIntro();
+  preloadImages();
+}).catch(e => { app.innerHTML = `<div class="card">読み込めませんでした：${esc(e.message)}</div>`; });
+
+// 画像は質問順に1枚ずつ先読み
+async function preloadImages() {
+  for (const q of S.questions) {
+    for (const id of q.imageIds || []) {
+      if (images[id]) continue;
+      try { images[id] = await run('getImage', id); }
+      catch (e) { images[id] = 'error'; }
+      const cur = S.questions[idx];
+      if (cur && (cur.imageIds || []).includes(id)) showImages(cur);
+    }
+  }
+}
+
+function renderIntro() {
+  const timed = S.questions.filter(q => q.timeLimit > 0).length;
+  app.innerHTML = `<div class="card">
+    <h1>${esc(S.title)}</h1>
+    <div class="desc">${rich(S.description)}</div>
+    ${timed ? `<div class="note">全${S.questions.length}問のうち${timed}問に回答の制限時間があります。画面上部の残り時間をご確認ください。</div>` : ''}
+    <div class="nav"><button class="primary" id="start">回答を始める</button></div></div>`;
+  document.getElementById('start').onclick = () => {
+    startedAt = new Date().toISOString(); t0 = performance.now();
+    window.addEventListener('beforeunload', warnLeave);
+    go(0);
+  };
+}
+function warnLeave(e) { if (!finished) { e.preventDefault(); e.returnValue = ''; } }
+
+function canGoBack(i) {
+  if (i <= 0) return false;
+  return !S.questions[i].timeLimit && !S.questions[i - 1].timeLimit;
+}
+
+function go(i, afterTimeout) {
+  stopTimer();
+  clearTimeout(imgWait);
+  begunFor = -1;
+  idx = i;
+  const q = S.questions[i], n = S.questions.length;
+  const prev = answers[q.id];
+  let body = '';
+  if (q.type === 'text') {
+    body = `<textarea id="txt" placeholder="回答を入力">${esc(prev ? prev.value || '' : '')}</textarea>`;
+  } else {
+    const t = q.type === 'multi' ? 'checkbox' : 'radio';
+    const pv = prev ? [].concat(prev.value || []) : [];
+    const otherPrev = pv.find(v => String(v).startsWith('その他'));
+    body = '<div class="opts">' + q.options.map((o, k) =>
+      `<label class="opt"><input type="${t}" name="o" value="${esc(o)}" ${pv.includes(o) ? 'checked' : ''}><span>${esc(o)}</span></label>`
+    ).join('') + (q.other ? `<label class="opt"><input type="${t}" name="o" value="__other" ${otherPrev ? 'checked' : ''}>
+      <span class="other">その他：<input type="text" id="otherTxt" value="${esc(otherPrev ? otherPrev.replace(/^その他:?\s?/, '') : '')}"></span></label>` : '') + '</div>';
+  }
+  const last = i === n - 1;
+  const ids = q.imageIds || [];
+  app.innerHTML = `
+    ${afterTimeout ? '<div class="toast" role="status">前の質問は制限時間を過ぎたため、次の質問に進みました。</div>' : ''}
+    <div class="progress"><span>${i + 1} / ${n}</span><div class="bar"><i style="width:${(i / n) * 100}%"></i></div></div>
+    ${q.timeLimit ? `<div class="timer waiting" id="timer"><div class="row"><span>残り時間</span><span class="num" id="tnum">画像の読み込み待ち</span></div><div class="track"><div class="fill" id="tfill"></div></div></div>` : ''}
+    <div class="card">
+      <p class="qtitle">${rich(q.title)}${q.required ? '<span class="req" aria-label="必須">*</span>' : ''}</p>
+      ${q.description ? `<div class="qdesc">${rich(q.description)}</div>` : ''}
+      ${ids.length ? `<div class="imgs n${ids.length}">${ids.map((_, k) =>
+        `<div class="imgbox" data-k="${k}">画像を読み込み中…</div>`).join('')}</div>` : ''}
+      ${body}
+      <div class="err" id="err" role="alert"></div>
+      <div class="nav">
+        ${canGoBack(i) ? '<button class="ghost" id="back">戻る</button>' : ''}
+        <button class="primary" id="next">${last ? '送信する' : '次へ'}</button>
+      </div>
+    </div>`;
+  const ot = document.getElementById('otherTxt');
+  if (ot) ot.addEventListener('input', () => { const r = ot.closest('.opt').querySelector('input'); if (ot.value) r.checked = true; });
+  document.getElementById('next').onclick = () => next(false);
+  const b = document.getElementById('back');
+  if (b) b.onclick = () => { record(q, collect(q), false); go(i - 1); };
+  window.scrollTo(0, 0);
+  if (ids.length) {
+    showImages(q);
+    // 画像の読み込みが止まっても、制限時間が始まらないままにならないようにする
+    imgWait = setTimeout(() => {
+      if (idx !== i || begunFor === i) return;
+      document.querySelectorAll('.imgbox').forEach(box => {
+        if (box.dataset.state !== 'ok') { box.dataset.state = 'fail'; box.textContent = '画像を表示できませんでした'; }
+      });
+      begin(q);
+    }, IMAGE_WAIT_MS);
+  } else begin(q);
+}
+
+// すべての画像が表示（または失敗）し終えたら時間を計り始める
+function showImages(q) {
+  const ids = q.imageIds || [];
+  const boxes = Array.from(document.querySelectorAll('.imgbox'));
+  const checkAll = () => { if (boxes.every(b => b.dataset.state === 'ok' || b.dataset.state === 'fail')) begin(q); };
+  boxes.forEach((box, k) => {
+    const d = images[ids[k]];
+    if (!d || box.dataset.state) return;
+    box.dataset.state = 'loading';
+    const fail = () => { box.dataset.state = 'fail'; box.textContent = '画像を表示できませんでした'; checkAll(); };
+    if (d === 'error') return fail();
+    const img = new Image();
+    img.alt = ids.length > 1 ? `画像${k + 1}` : '設問の画像';
+    img.onload = () => {
+      if (box.dataset.state === 'fail') return;
+      box.textContent = '';
+      if (ids.length > 1) box.insertAdjacentHTML('beforeend', `<span class="lbl">画像${k + 1}</span>`);
+      box.appendChild(img);
+      box.dataset.state = 'ok';
+      checkAll();
+    };
+    img.onerror = fail;
+    img.onclick = () => {
+      const z = document.createElement('div'); z.className = 'zoom';
+      z.innerHTML = `<img src="${d}" alt="拡大画像">`; z.onclick = () => z.remove(); document.body.appendChild(z);
+    };
+    img.src = d;
+  });
+}
+
+// 質問が見える状態になった時点から時間を計る
+function begin(q) {
+  if (begunFor === idx) return;  // 1つの質問で二重に始めない
+  begunFor = idx;
+  clearTimeout(imgWait);
+  shownAt = performance.now();
+  if (!q.timeLimit) return;
+  const el = document.getElementById('timer');
+  el.classList.remove('waiting');
+  deadline = shownAt + q.timeLimit * 1000;
+  const fill = document.getElementById('tfill'), num = document.getElementById('tnum');
+  const tick = () => {
+    const left = Math.max(0, deadline - performance.now());
+    fill.style.transform = `scaleX(${left / (q.timeLimit * 1000)})`;
+    num.textContent = Math.ceil(left / 1000) + ' 秒';
+    el.classList.toggle('low', left <= 5000);
+    if (left <= 0) { stopTimer(); next(true); }
+  };
+  tick();
+  timerId = setInterval(tick, 100);
+}
+function stopTimer() { if (timerId) clearInterval(timerId); timerId = null; }
+
+function collect(q) {
+  if (q.type === 'text') return (document.getElementById('txt').value || '').trim();
+  const checked = Array.from(document.querySelectorAll('input[name=o]:checked')).map(c => {
+    if (c.value !== '__other') return c.value;
+    const t = (document.getElementById('otherTxt').value || '').trim();
+    return t ? 'その他: ' + t : 'その他';
+  });
+  return q.type === 'multi' ? checked : (checked[0] || '');
+}
+
+function record(q, value, timedOut) {
+  const spent = shownAt != null ? performance.now() - shownAt : 0;
+  const prev = answers[q.id];
+  answers[q.id] = { value: value, timeMs: Math.round((prev ? prev.timeMs : 0) + spent), timedOut: timedOut };
+  shownAt = null;
+}
+
+function next(timedOut) {
+  if (!timedOut && begunFor !== idx && S.questions[idx].timeLimit) return; // 時間計測前は進めない
+  const q = S.questions[idx];
+  const v = collect(q);
+  if (!timedOut && q.required && isEmpty(v)) {
+    document.getElementById('err').textContent = 'この質問は回答が必要です。';
+    return;
+  }
+  stopTimer();
+  record(q, v, timedOut);
+  if (idx < S.questions.length - 1) go(idx + 1, timedOut); else submit();
+}
+
+function submit() {
+  app.innerHTML = '<div class="card center">送信しています…</div>';
+  const payload = { respondentId, startedAt, totalMs: Math.round(performance.now() - t0), answers };
+  run('submitResponse', payload).then(() => {
+    finished = true;
+    app.innerHTML = `<div class="card"><h1>${esc(S.title)}</h1><p>回答を送信しました。ご協力ありがとうございました。</p></div>`;
+  }).catch(e => {
+    app.innerHTML = `<div class="card"><p>送信できませんでした：${esc(e.message)}</p>
+      <div class="nav"><button class="primary" id="retry">もう一度送信する</button></div></div>`;
+    document.getElementById('retry').onclick = submit;
+  });
+}
+</script>
+</body>
+</html>

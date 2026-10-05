@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>アンケート管理</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1d2a3a; --sub: #5b6878; --paper: #eef1f4; --card: #fff; --line: #d5dbe2;
+    --accent: #1f6f78; --accent-soft: #e2f0f1; --warn: #c98a12; --danger: #c43d3d;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--paper); color: var(--ink); font-size: 15px; line-height: 1.6;
+    font-family: "Noto Sans JP", "Hiragino Sans", "Yu Gothic", Meiryo, sans-serif; }
+  .wrap { max-width: 860px; margin: 0 auto; padding: 20px 16px 110px; }
+  header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-bottom: 16px; }
+  header h1 { font-size: 1.2rem; margin: 0; flex: 1; }
+  .tabs { display: flex; gap: 4px; background: var(--line); padding: 3px; border-radius: 8px; }
+  .tabs button { background: transparent; padding: 7px 16px; border-radius: 6px; }
+  .tabs button.on { background: var(--card); font-weight: 700; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 18px; margin-bottom: 12px; }
+  label.f { display: block; font-size: .82rem; color: var(--sub); margin: 10px 0 4px; }
+  input[type=text], input[type=number], input[type=password], textarea, select {
+    font: inherit; width: 100%; border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; background: #fff; }
+  textarea { resize: vertical; }
+  button { font: inherit; border: 1px solid var(--line); background: #fff; border-radius: 6px; padding: 7px 14px; cursor: pointer; color: var(--ink); }
+  button.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 700; }
+  button.danger { color: var(--danger); }
+  button:disabled { opacity: .5; cursor: default; }
+  button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible { outline: 3px solid #8cc2c7; outline-offset: 1px; }
+  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+  .grow { flex: 1; min-width: 180px; }
+  .qhead { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 4px; }
+  .qnum { font-weight: 700; background: var(--accent); color: #fff; border-radius: 6px; padding: 2px 10px; }
+  .qhead select { width: auto; }
+  .chk { display: inline-flex; gap: 6px; align-items: center; font-size: .9rem; cursor: pointer; }
+  .chk input { accent-color: var(--accent); width: 16px; height: 16px; }
+  .tl { display: inline-flex; align-items: center; gap: 6px; font-size: .9rem; }
+  .tl input { width: 80px; }
+  .tl.on input { border-color: var(--warn); background: #fdf6e6; }
+  .img { display: flex; gap: 12px; align-items: flex-start; margin-top: 10px; flex-wrap: wrap; }
+  .img img { max-width: 220px; max-height: 160px; border-radius: 6px; border: 1px solid var(--line); }
+  .img .slot { display: flex; flex-direction: column; gap: 4px; align-items: flex-start; font-size: .82rem; color: var(--sub); }
+  .img .slot img { max-width: 180px; max-height: 130px; }
+  .img .slot button { padding: 3px 10px; font-size: .82rem; }
+  .img .ph { width: 180px; height: 110px; border: 1px dashed var(--line); border-radius: 6px; display: flex;
+    align-items: center; justify-content: center; color: var(--sub); font-size: .85rem; }
+  .qtools { display: flex; gap: 6px; justify-content: flex-end; margin-top: 12px; flex-wrap: wrap; }
+  .savebar { position: fixed; left: 0; right: 0; bottom: 0; background: var(--card); border-top: 1px solid var(--line);
+    padding: 10px 16px; display: flex; gap: 12px; justify-content: center; align-items: center; z-index: 10; }
+  .savebar .msg { color: var(--sub); font-size: .9rem; }
+  .savebar.dirty .msg { color: var(--warn); font-weight: 700; }
+  .url { display: flex; gap: 8px; align-items: center; }
+  .url input { font-size: .85rem; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 12px; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 12px 16px; }
+  .stat b { display: block; font-size: 1.6rem; line-height: 1.2; font-variant-numeric: tabular-nums; }
+  .stat span { color: var(--sub); font-size: .85rem; }
+  .rq h3 { font-size: 1rem; margin: 0 0 4px; }
+  .meta { color: var(--sub); font-size: .85rem; margin-bottom: 10px; }
+  .meta .to { color: var(--warn); font-weight: 700; }
+  .bar { display: grid; grid-template-columns: minmax(120px, 38%) 1fr 92px; gap: 10px; align-items: center; margin: 5px 0; font-size: .9rem; }
+  .bar .track { height: 18px; background: #eef1f4; border-radius: 4px; overflow: hidden; }
+  .bar .fill { height: 100%; background: var(--accent); }
+  .bar.timeout .fill { background: var(--warn); }
+  .bar .n { text-align: right; font-variant-numeric: tabular-nums; }
+  .texts { max-height: 200px; overflow: auto; border-top: 1px solid var(--line); margin-top: 8px; padding-top: 6px; font-size: .9rem; }
+  .texts div { padding: 4px 0; border-bottom: 1px dashed var(--line); }
+  table { border-collapse: collapse; width: 100%; font-size: .9rem; }
+  td, th { border-bottom: 1px solid var(--line); padding: 8px 6px; text-align: left; vertical-align: top; }
+  th { width: 55%; font-weight: 500; }
+  .thumb { max-width: 80px; max-height: 60px; border-radius: 4px; display: block; margin-top: 4px; }
+  .login { max-width: 360px; margin: 12vh auto; }
+  .err { color: var(--danger); font-size: .9rem; margin-top: 8px; }
+  .hint { color: var(--sub); font-size: .82rem; }
+</style>
+</head>
+<body>
+<div class="wrap" id="app">
+  <div class="card login">
+    <h1 style="font-size:1.15rem;margin-top:0">アンケート管理</h1>
+    <label class="f" for="pw">パスワード</label>
+    <input type="password" id="pw" autocomplete="current-password">
+    <div class="row" style="margin-top:12px"><button class="primary" id="loginBtn">ログイン</button></div>
+    <div class="err" id="loginErr"></div>
+  </div>
+</div>
+
+<script src="config.js"></script>
+<script>
+const app = document.getElementById('app');
+let PW = '', URL_ = '', S = null, dirty = false, tab = 'edit', R = null, personIdx = 0;
+const imgCache = {};
+const MAX_IMAGES = 3; // Code.gs の MAX_IMAGES と合わせる
+
+// Apps Script（config.js の API_URL）にデータを送受信する
+async function run(fn) {
+  const args = Array.prototype.slice.call(arguments, 1);
+  if (!window.API_URL || !/^https:\/\/script\.google\.com\/.+\/exec$/.test(API_URL)) {
+    throw new Error('config.js に Apps Script のウェブアプリURL（末尾が /exec）が設定されていません。');
+  }
+  let lastErr;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (attempt) await new Promise(r => setTimeout(r, 800 * attempt + Math.random() * 700));
+    let j;
+    try {
+      // text/plain で送ると、Googleのログイン状態に関係なく通信できる
+      const res = await fetch(API_URL, { method: 'POST', body: JSON.stringify({ action: fn, args: args }) });
+      j = await res.json();
+    } catch (e) {
+      lastErr = new Error('Apps Script に接続できませんでした。デプロイの「アクセスできるユーザー」が「全員」になっているか確認してください。');
+      continue; // 混雑などの一時的な失敗は自動でやり直す
+    }
+    if (!j.ok) throw new Error(j.error || 'エラーが発生しました');
+    return j.data;
+  }
+  throw lastErr;
+}
+function esc(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function plain(s) { return String(s).replace(/\*\*/g, ''); }
+function newId() { return 'q' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6); }
+
+document.getElementById('pw').addEventListener('keydown', e => { if (e.key === 'Enter') login(); });
+document.getElementById('loginBtn').onclick = login;
+function login() {
+  const pw = document.getElementById('pw').value;
+  run('adminLogin', pw).then(() => { PW = pw; URL_ = new URL('./', location.href).href; return run('adminGetSurvey', PW); })
+    .then(sv => { S = sv; renderShell(); })
+    .catch(e => { document.getElementById('loginErr').textContent = e.message; });
+}
+window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+function renderShell() {
+  app.innerHTML = `
+    <header>
+      <h1>${esc(S.title)}</h1>
+      <div class="tabs"><button data-t="edit">設問の編集</button><button data-t="results">回答状況</button></div>
+    </header>
+    <div id="main"></div>
+    <div class="savebar" id="savebar"><span class="msg" id="saveMsg">保存済み</span><button class="primary" id="saveBtn">変更を保存</button></div>`;
+  app.querySelectorAll('.tabs button').forEach(b => b.onclick = () => { tab = b.dataset.t; renderTab(); });
+  document.getElementById('saveBtn').onclick = save;
+  renderTab();
+}
+function renderTab() {
+  app.querySelectorAll('.tabs button').forEach(b => b.classList.toggle('on', b.dataset.t === tab));
+  document.getElementById('savebar').style.display = tab === 'edit' ? '' : 'none';
+  if (tab === 'edit') renderEditor(); else loadResults();
+}
+function markDirty() {
+  dirty = true;
+  const bar = document.getElementById('savebar');
+  bar.classList.add('dirty'); document.getElementById('saveMsg').textContent = '未保存の変更があります';
+}
+function save() {
+  const btn = document.getElementById('saveBtn'); btn.disabled = true;
+  document.getElementById('saveMsg').textContent = '保存しています…';
+  run('adminSaveSurvey', PW, S).then(() => {
+    dirty = false; document.getElementById('savebar').classList.remove('dirty');
+    document.getElementById('saveMsg').textContent = '保存しました'; btn.disabled = false;
+    app.querySelector('header h1').textContent = S.title;
+  }).catch(e => { document.getElementById('saveMsg').textContent = '保存できませんでした：' + e.message; btn.disabled = false; });
+}
+
+/* ---------- 設問の編集 ---------- */
+
+function renderEditor() {
+  const main = document.getElementById('main');
+  main.innerHTML = `
+    <div class="card">
+      <label class="f">回答用URL（回答者に配布）</label>
+      <div class="url"><input type="text" readonly value="${esc(URL_)}" id="urlBox"><button id="copyBtn">コピー</button></div>
+      <label class="f" for="svTitle">タイトル</label>
+      <input type="text" id="svTitle" value="${esc(S.title)}">
+      <label class="f" for="svDesc">説明文（最初のページに表示）</label>
+      <textarea id="svDesc" rows="6">${esc(S.description)}</textarea>
+      <div class="row" style="margin-top:10px">
+        <label class="chk"><input type="checkbox" id="svAcc" ${S.accepting !== false ? 'checked' : ''}>回答を受け付ける</label>
+      </div>
+    </div>
+    <div id="qlist"></div>
+    <div class="row"><button class="primary" id="addQ">質問を追加</button></div>`;
+  document.getElementById('copyBtn').onclick = () => { const u = document.getElementById('urlBox'); u.select(); document.execCommand('copy'); };
+  document.getElementById('svTitle').oninput = e => { S.title = e.target.value; markDirty(); };
+  document.getElementById('svDesc').oninput = e => { S.description = e.target.value; markDirty(); };
+  document.getElementById('svAcc').onchange = e => { S.accepting = e.target.checked; markDirty(); };
+  document.getElementById('addQ').onclick = () => {
+    S.questions.push({ id: newId(), title: '', description: '', type: 'single', options: ['選択肢1', '選択肢2'],
+      other: false, required: true, timeLimit: 0, imageIds: [] });
+    markDirty(); renderQuestions();
+    const cards = document.querySelectorAll('#qlist .card'); cards[cards.length - 1].scrollIntoView({ behavior: 'smooth' });
+  };
+  renderQuestions();
+}
+
+function renderQuestions() {
+  const list = document.getElementById('qlist');
+  list.innerHTML = S.questions.map((q, i) => `
+    <div class="card" data-i="${i}">
+      <div class="qhead">
+        <span class="qnum">Q${i + 1}</span>
+        <select data-k="type" aria-label="質問の種類">
+          <option value="single" ${q.type === 'single' ? 'selected' : ''}>単一選択</option>
+          <option value="multi" ${q.type === 'multi' ? 'selected' : ''}>複数選択</option>
+          <option value="text" ${q.type === 'text' ? 'selected' : ''}>記述式</option>
+        </select>
+        <label class="chk"><input type="checkbox" data-k="required" ${q.required ? 'checked' : ''}>必須</label>
+        <span class="tl ${q.timeLimit > 0 ? 'on' : ''}">制限時間 <input type="number" min="0" step="1" data-k="timeLimit" value="${q.timeLimit || 0}"> 秒</span>
+        <span class="hint">0 = 制限なし</span>
+      </div>
+      <label class="f">質問文</label>
+      <textarea rows="2" data-k="title">${esc(q.title)}</textarea>
+      <label class="f">補足説明（任意・**文字** で太字）</label>
+      <textarea rows="2" data-k="description">${esc(q.description)}</textarea>
+      ${q.type !== 'text' ? `
+        <label class="f">選択肢（1行に1つ）</label>
+        <textarea rows="${Math.max(2, q.options.length)}" data-k="options">${esc(q.options.join('\n'))}</textarea>
+        <label class="chk" style="margin-top:6px"><input type="checkbox" data-k="other" ${q.other ? 'checked' : ''}>「その他（自由記入）」を付ける</label>` : ''}
+      <div class="img">
+        ${q.imageIds.map((id, k) => `<div class="slot">
+          <span>画像${k + 1}</span>
+          <span id="im-${i}-${k}"><span class="ph">読み込み中…</span></span>
+          <div class="row" style="gap:4px">
+            <button data-a="mvimg" data-k="${k}" ${k === 0 ? 'disabled' : ''} aria-label="前へ移動">←</button>
+            <button data-a="rmimg" data-k="${k}" class="danger">外す</button>
+          </div></div>`).join('')}
+        ${q.imageIds.length < MAX_IMAGES ? `<div class="slot">
+          <span>${q.imageIds.length ? '' : '画像なし'}</span>
+          <button data-a="pick" style="padding:7px 14px;font-size:.9rem">画像を追加（あと${MAX_IMAGES - q.imageIds.length}枚）</button>
+          <input type="file" accept="image/*" multiple hidden data-a="file">
+          <span class="hint" data-a="upmsg"></span>
+        </div>` : '<span class="hint">画像は最大3枚です</span>'}
+      </div>
+      <div class="qtools">
+        <button data-a="up" ${i === 0 ? 'disabled' : ''}>上へ</button>
+        <button data-a="down" ${i === S.questions.length - 1 ? 'disabled' : ''}>下へ</button>
+        <button data-a="dup">複製</button>
+        <button data-a="del" class="danger">削除</button>
+      </div>
+    </div>`).join('');
+
+  list.querySelectorAll('.card').forEach(card => {
+    const i = Number(card.dataset.i), q = S.questions[i];
+    card.querySelectorAll('[data-k]').forEach(el => {
+      const k = el.dataset.k;
+      const ev = el.type === 'checkbox' || el.tagName === 'SELECT' ? 'change' : 'input';
+      el.addEventListener(ev, () => {
+        if (k === 'options') q.options = el.value.split('\n').map(s => s.trim()).filter(Boolean);
+        else if (k === 'timeLimit') { q.timeLimit = Math.max(0, parseInt(el.value, 10) || 0); el.parentElement.classList.toggle('on', q.timeLimit > 0); }
+        else if (el.type === 'checkbox') q[k] = el.checked;
+        else q[k] = el.value;
+        markDirty();
+        if (k === 'type') renderQuestions();
+      });
+    });
+    const file = card.querySelector('[data-a=file]');
+    if (file) {
+      card.querySelector('[data-a=pick]').onclick = () => file.click();
+      file.onchange = () => { if (file.files.length) uploadFor(q, Array.from(file.files), card.querySelector('[data-a=upmsg]')); };
+    }
+    card.querySelectorAll('[data-a=rmimg]').forEach(b => b.onclick = () => {
+      q.imageIds.splice(Number(b.dataset.k), 1); markDirty(); renderQuestions();
+    });
+    card.querySelectorAll('[data-a=mvimg]').forEach(b => b.onclick = () => {
+      const k = Number(b.dataset.k), a = q.imageIds; [a[k - 1], a[k]] = [a[k], a[k - 1]]; markDirty(); renderQuestions();
+    });
+    card.querySelector('[data-a=up]').onclick = () => move(i, -1);
+    card.querySelector('[data-a=down]').onclick = () => move(i, 1);
+    card.querySelector('[data-a=dup]').onclick = () => {
+      S.questions.splice(i + 1, 0, Object.assign(JSON.parse(JSON.stringify(q)), { id: newId() })); markDirty(); renderQuestions();
+    };
+    card.querySelector('[data-a=del]').onclick = () => {
+      if (!confirm(`Q${i + 1} を削除しますか？`)) return;
+      S.questions.splice(i, 1); markDirty(); renderQuestions();
+    };
+    q.imageIds.forEach((id, k) => loadThumb(id, document.getElementById(`im-${i}-${k}`)));
+  });
+}
+function move(i, d) { const a = S.questions; [a[i], a[i + d]] = [a[i + d], a[i]]; markDirty(); renderQuestions(); }
+
+function loadThumb(id, el, style) {
+  if (!el) return;
+  const put = d => { el.innerHTML = d === 'error' ? '<span class="ph">読み込めません</span>' : `<img src="${d}" alt="" style="${style || ''}">`; };
+  if (imgCache[id]) return put(imgCache[id]);
+  run('adminGetImage', PW, id).then(d => { imgCache[id] = d; put(d); }).catch(() => put('error'));
+}
+
+// 元の画質を保つため 3MB 以下はそのまま、それより大きい場合だけ縮小します
+function prepareImage(file) {
+  return new Promise((res, rej) => {
+    const reader = new FileReader();
+    reader.onerror = rej;
+    reader.onload = () => {
+      if (file.size <= 3 * 1024 * 1024) return res(reader.result);
+      const img = new Image();
+      img.onerror = rej;
+      img.onload = () => {
+        const r = Math.min(1, 2000 / Math.max(img.width, img.height));
+        const c = document.createElement('canvas');
+        c.width = Math.round(img.width * r); c.height = Math.round(img.height * r);
+        c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+        res(c.toDataURL('image/jpeg', 0.92));
+      };
+      img.src = reader.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+async function uploadFor(q, files, msg) {
+  const room = MAX_IMAGES - q.imageIds.length;
+  const list = files.slice(0, room);
+  try {
+    for (let k = 0; k < list.length; k++) {
+      msg.textContent = `アップロード中…（${k + 1} / ${list.length}）`;
+      const data = await prepareImage(list[k]);
+      const id = await run('adminUploadImage', PW, data, list[k].name);
+      imgCache[id] = data; q.imageIds.push(id); markDirty();
+    }
+    renderQuestions();
+    if (files.length > room) alert(`画像は1つの質問に${MAX_IMAGES}枚までです。${files.length - room}枚は追加しませんでした。`);
+  } catch (e) { renderQuestions(); alert('アップロードできませんでした：' + (e.message || e)); }
+}
+
+/* ---------- 回答状況 ---------- */
+
+function loadResults() {
+  const main = document.getElementById('main');
+  main.innerHTML = '<div class="card">回答を読み込み中…</div>';
+  run('adminGetResponses', PW).then(rows => { R = rows; personIdx = Math.max(0, rows.length - 1); renderResults(); })
+    .catch(e => { main.innerHTML = `<div class="card err">${esc(e.message)}</div>`; });
+}
+
+function fmtDate(iso) { const d = new Date(iso); return isNaN(d) ? iso : d.toLocaleString('ja-JP'); }
+function sec(ms) { return (ms / 1000).toFixed(1) + ' 秒'; }
+
+function renderResults() {
+  const main = document.getElementById('main');
+  const n = R.length;
+  const avgTotal = n ? R.reduce((a, r) => a + r.totalMs, 0) / n : 0;
+  const lastTs = n ? fmtDate(R[n - 1].ts) : '—';
+  let html = `
+    <div class="stats">
+      <div class="stat"><b>${n}</b><span>回答数</span></div>
+      <div class="stat"><b>${n ? (avgTotal / 60000).toFixed(1) : '—'}</b><span>平均所要時間（分）</span></div>
+      <div class="stat"><b style="font-size:1rem;padding:8px 0">${lastTs}</b><span>最新の回答</span></div>
+    </div>
+    <div class="card row">
+      <button id="reload">最新の状態に更新</button>
+      <button id="exportSheet">スプレッドシートに書き出す</button>
+      <button id="csv">CSVをダウンロード</button>
+      <button id="clear" class="danger" style="margin-left:auto">回答をすべて削除</button>
+      <div class="hint grow" id="expMsg"></div>
+    </div>`;
+  if (!n) {
+    html += '<div class="card">まだ回答がありません。回答用URLを配布すると、ここに集計が表示されます。</div>';
+  } else {
+    html += S.questions.map((q, i) => questionStats(q, i)).join('');
+    html += personView();
+  }
+  main.innerHTML = html;
+  document.getElementById('reload').onclick = loadResults;
+  document.getElementById('exportSheet').onclick = () => {
+    const m = document.getElementById('expMsg'); m.textContent = '書き出し中…';
+    run('adminExportToSheet', PW).then(url => { m.innerHTML = `「回答一覧」シートに書き出しました。<a href="${esc(url)}" target="_blank">開く</a>`; })
+      .catch(e => { m.textContent = e.message; });
+  };
+  document.getElementById('csv').onclick = downloadCsv;
+  document.getElementById('clear').onclick = () => {
+    if (!confirm('すべての回答を削除します。元に戻せません。よろしいですか？')) return;
+    run('adminClearResponses', PW).then(loadResults);
+  };
+  bindPerson();
+  S.questions.forEach((q, i) => q.imageIds.forEach((id, k) =>
+    loadThumb(id, document.getElementById(`rimg-${i}-${k}`), 'max-width:110px;max-height:80px;border-radius:6px')));
+}
+
+function questionStats(q, i) {
+  const got = R.map(r => r.answers[q.id]).filter(Boolean);
+  const timedOutEmpty = got.filter(a => a.timedOut && (a.value == null || a.value === '' || (Array.isArray(a.value) && !a.value.length))).length;
+  const timedOutAny = got.filter(a => a.timedOut).length;
+  const times = got.map(a => a.timeMs).filter(t => t != null);
+  const avg = times.length ? times.reduce((a, b) => a + b, 0) / times.length : 0;
+  let body = '';
+  if (q.type === 'text') {
+    const texts = got.map(a => a.value).filter(v => v);
+    body = `<div class="texts">${texts.length ? texts.map(t => `<div>${esc(t)}</div>`).join('') : '<div class="hint">回答なし</div>'}</div>`;
+  } else {
+    const counts = {}; q.options.forEach(o => counts[o] = 0);
+    let other = 0; const otherTexts = [];
+    got.forEach(a => [].concat(a.value || []).forEach(v => {
+      if (v in counts) counts[v]++;
+      else if (String(v).startsWith('その他')) { other++; const t = String(v).replace(/^その他:?\s?/, ''); if (t) otherTexts.push(t); }
+    }));
+    const base = got.length || 1;
+    const bar = (label, c, cls) => `<div class="bar ${cls || ''}"><span>${esc(label)}</span>
+      <div class="track"><div class="fill" style="width:${(c / base) * 100}%"></div></div>
+      <span class="n">${c}人（${Math.round((c / base) * 100)}%）</span></div>`;
+    body = q.options.map(o => bar(o, counts[o])).join('');
+    if (q.other) body += bar('その他', other);
+    if (q.timeLimit) body += bar('時間切れ（未回答）', timedOutEmpty, 'timeout');
+    if (otherTexts.length) body += `<div class="texts">${otherTexts.map(t => `<div>その他：${esc(t)}</div>`).join('')}</div>`;
+    if (q.type === 'multi') body += '<div class="hint">※ 複数選択のため、割合は回答者数に対する選択率です</div>';
+  }
+  return `<div class="card rq">
+    <div class="row" style="align-items:flex-start">
+      <div class="grow">
+        <h3>Q${i + 1}. ${esc(plain(q.title))}</h3>
+        <div class="meta">回答 ${got.length}件 ・ 平均回答時間 ${sec(avg)}${q.timeLimit ? ` ・ 制限 ${q.timeLimit}秒 ・ <span class="to">時間切れ ${timedOutAny}件</span>` : ''}</div>
+      </div>
+      ${q.imageIds.length ? `<div class="row" style="gap:6px">${q.imageIds.map((_, k) => `<span id="rimg-${i}-${k}"></span>`).join('')}</div>` : ''}
+    </div>
+    ${body}
+  </div>`;
+}
+
+function personView() {
+  const r = R[personIdx];
+  const rows = S.questions.map((q, i) => {
+    const a = r.answers[q.id];
+    let v = a ? [].concat(a.value || []).join('、') : '';
+    if (!v) v = '<span class="hint">未回答</span>'; else v = esc(v);
+    const t = a && a.timeMs != null ? sec(a.timeMs) : '';
+    return `<tr><th>Q${i + 1}. ${esc(plain(q.title))}</th><td>${v}${a && a.timedOut ? ' <span class="meta to">［時間切れ］</span>' : ''}<div class="hint">${t}</div></td></tr>`;
+  }).join('');
+  return `<div class="card">
+    <div class="row" style="margin-bottom:8px">
+      <h3 style="margin:0;font-size:1rem" class="grow">個別の回答（${personIdx + 1} / ${R.length}）</h3>
+      <button id="pPrev" ${personIdx === 0 ? 'disabled' : ''}>前の人</button>
+      <button id="pNext" ${personIdx === R.length - 1 ? 'disabled' : ''}>次の人</button>
+    </div>
+    <div class="meta">${fmtDate(r.ts)} ・ 所要時間 ${sec(r.totalMs)}</div>
+    <div style="overflow-x:auto"><table>${rows}</table></div>
+  </div>`;
+}
+function bindPerson() {
+  const p = document.getElementById('pPrev'), nx = document.getElementById('pNext');
+  if (p) p.onclick = () => { personIdx--; rerenderPerson(); };
+  if (nx) nx.onclick = () => { personIdx++; rerenderPerson(); };
+}
+function rerenderPerson() {
+  const cards = document.querySelectorAll('#main > .card');
+  const last = cards[cards.length - 1];
+  last.outerHTML = personView();
+  bindPerson();
+}
+
+function downloadCsv() {
+  const head = ['回答日時', '回答ID', '所要時間(秒)'];
+  S.questions.forEach((q, i) => {
+    head.push(`Q${i + 1} ${plain(q.title)}`, `Q${i + 1} 回答時間(秒)`);
+    if (q.timeLimit) head.push(`Q${i + 1} 時間切れ`);
+  });
+  const lines = [head];
+  R.forEach(r => {
+    const row = [fmtDate(r.ts), r.id, (r.totalMs / 1000).toFixed(1)];
+    S.questions.forEach(q => {
+      const a = r.answers[q.id] || {};
+      row.push([].concat(a.value || []).join(', '), a.timeMs != null ? (a.timeMs / 1000).toFixed(1) : '');
+      if (q.timeLimit) row.push(a.timedOut ? '○' : '');
+    });
+    lines.push(row);
+  });
+  const csv = '\ufeff' + lines.map(l => l.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }));
+  a.download = 'アンケート回答.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+}
+</script>
+</body>
+</html>
